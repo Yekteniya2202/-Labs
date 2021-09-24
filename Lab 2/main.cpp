@@ -12,10 +12,15 @@ void analyse_task_1(int iterations_num, int iterations_per_session);
 void task_1(double& timedelta1, double& timedelta2, int N) {
 
 	srand(time(NULL));
+	
+
+	//генерируем два случайных вещественных числа
+	//volatile - запрещает компилятору оптимизировать данные переменные
 	volatile double lfnum1 = (double)(rand() / RAND_MAX * 10000);
 	volatile double lfnum2 = (double)(rand() / RAND_MAX * 10000);
 	volatile double res;
 
+	//засекаем время в однопотоке
 	double start1 = omp_get_wtime();
 	for (int i = 0; i < N; i++) {
 		res = lfnum1 * lfnum2;
@@ -23,12 +28,17 @@ void task_1(double& timedelta1, double& timedelta2, int N) {
 	double end1 = omp_get_wtime();
 	timedelta1 = end1 - start1;
 
-	double start2 = omp_get_wtime();
+	//динамическая корректировка отключена
 	omp_set_dynamic(0);
+	//два потока - результаты неоднозначны, четыре потока - результаты однозначны, цикл выполняется быстрее
 	omp_set_num_threads(2);
+
+	//засекаем время в многопотоке
+	//при двух потока результаты смазанные и неоднозначные, при четырёх результаты такие, как и ожидались
+	double start2 = omp_get_wtime();
 	#pragma omp parallel
 	{
-	#pragma omp for schedule(static)  //firstprivate(lfnum1, lfnum2)
+	#pragma omp for //schedule(static)  //firstprivate(lfnum1, lfnum2)
 		for (int i = 0; i < N; i++) {
 			res = lfnum1 * lfnum2;
 		}
@@ -44,9 +54,15 @@ void analyse_task_1(int iterations_num, int iterations_per_session) {
 	cout << "Внутренних итераций: " << iterations_per_session << endl;
 
 	int expected_sessions = 0, unexpected_sessions = 0;
+	//для сессии засекания времени делаем цикл - прогоняем его несколько раз (iterations_num), при этом засекая время
+	//delta1 - в однопотоке, delta2 - в многопотоке
 	for (int i = 0; i < iterations_num; i++) {
 		double delta1, delta2;
+		//iterations_per_session - число итераций в цикле при операциях с вещественными числами
 		task_1(delta1, delta2, iterations_per_session);
+		//если в однопотоке время выполнения больше, чем в многопотоке, то для нас это ожидаемый результат
+		//увеличиваем счетчик ожидаемых результатов
+		//иначе - увеличиваем счетчик неожидаемых результатов
 		delta1 > delta2 ? expected_sessions++ : unexpected_sessions++;
 	}
 	cout << "Ожидаемых результатов: " << expected_sessions << endl;
@@ -186,14 +202,17 @@ void task_8() {
 }
 int main()
 {
+#ifdef _OPENMP
+	cout << "asdf" << endl;
+#endif
 	setlocale(LC_ALL, "rus");
-	//analyse_task_1(500, 100000);
+	analyse_task_1(500, 1000000);
 	//analyse_task_2(50);
 	//task_3();
 	//task_4();
 	//task_5();
 	//task_6();
 	//task_7();
-	task_8();
+	//task_8();
 	system("pause");
 }
