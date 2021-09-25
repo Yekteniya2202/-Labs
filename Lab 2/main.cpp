@@ -7,25 +7,24 @@
 using namespace std;
 
 void task_1(double& timedelta1, double& timedelta2, int N);
-void analyse_task_1(int iterations_num, int iterations_per_session);
+void analyse_task_1(const int iterations_num, const int iterations_per_session);
 
 void task_1(double& timedelta1, double& timedelta2, int N) {
 
-	srand(time(NULL));
-	volatile double lfnum1 = (double)(rand() / RAND_MAX * 10000);
-	volatile double lfnum2 = (double)(rand() / RAND_MAX * 10000);
+	srand(time(nullptr));
+	const volatile auto lfnum1 = static_cast<double>(rand() / RAND_MAX * 10000);
+	const volatile auto lfnum2 = static_cast<double>(rand() / RAND_MAX * 10000);
 	volatile double res;
 
-	double start1 = omp_get_wtime();
+	const double start1 = omp_get_wtime();
 	for (int i = 0; i < N; i++) {
 		res = lfnum1 * lfnum2;
 	}
-	double end1 = omp_get_wtime();
-	timedelta1 = end1 - start1;
+	timedelta1 = omp_get_wtime() - start1;
 
-	double start2 = omp_get_wtime();
+	const double start2 = omp_get_wtime();
 	omp_set_dynamic(0);
-	omp_set_num_threads(2);
+	omp_set_num_threads(4);
 	#pragma omp parallel
 	{
 	#pragma omp for schedule(static)  //firstprivate(lfnum1, lfnum2)
@@ -34,12 +33,17 @@ void task_1(double& timedelta1, double& timedelta2, int N) {
 		}
 	}
 
-	double end2 = omp_get_wtime();
-
-	timedelta2 = end2 - start2;
+	timedelta2 = omp_get_wtime() - start2;
 }
 
-void analyse_task_1(int iterations_num, int iterations_per_session) {
+void print_task_1()
+{
+	double delta1, delta2;
+	task_1(delta1, delta2, 1000000);
+	cout << "Время выполнения в одном потоке: " << delta1 << endl;
+	cout << "Время выполнения в четырёхпотоке: " << delta2 << endl;
+}
+void analyse_task_1(const int iterations_num, const int iterations_per_session) {
 	cout << "Внешних итераций: " << iterations_num << endl;
 	cout << "Внутренних итераций: " << iterations_per_session << endl;
 
@@ -103,7 +107,7 @@ void task_4() {
 
 	omp_set_dynamic(0);
 	omp_set_num_threads(3);
-	auto f = []() {
+	auto f = []()->void {
 		#pragma omp master
 		{
 			#pragma omp critical
@@ -124,8 +128,7 @@ void task_4() {
 }
 
 void task_5() {
-	int n;
-	n = 10;
+	int n = 10;
 	cout << "Последовательная область: n = " << n << endl;
 	omp_set_num_threads(2);
 	#pragma omp parallel private(n)
@@ -160,7 +163,7 @@ void task_6() {
 }
 
 void task_7() {
-	srand(time(NULL));
+	srand(time(nullptr));
 	int counter = 0;
 	omp_set_num_threads(rand() % 5 + 5);
 	#pragma omp parallel reduction(+:counter)
@@ -173,7 +176,7 @@ void task_7() {
 
 void task_8() {
 
-	srand(time(NULL));
+	srand(time(nullptr));
 	int counter = 0;
 	omp_set_num_threads(4);
 	#pragma omp parallel reduction(+:counter)
@@ -187,13 +190,14 @@ void task_8() {
 int main()
 {
 	setlocale(LC_ALL, "rus");
+	//print_task_1();
 	//analyse_task_1(500, 100000);
 	//analyse_task_2(50);
-	//task_3();
+	task_3();
 	//task_4();
 	//task_5();
 	//task_6();
 	//task_7();
-	task_8();
+	//task_8();
 	system("pause");
 }
